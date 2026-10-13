@@ -1,6 +1,6 @@
 person_detector:
   ros__parameters:
-    model_path: ""          # empty -> <share>/person_detection/models/yolox_tiny.onnx
+    model_path: "$(find-pkg-share person_detection)/models/yolox_nano.onnx"          # empty -> <share>/person_detection_ros2/models/yolox_tiny.onnx
     input_size: 416         # model input is fixed 416x416
     score_threshold: 0.4    # objectness * person class score
     nms_threshold: 0.45

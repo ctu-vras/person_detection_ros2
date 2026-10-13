@@ -1,0 +1,12 @@
+<launch>
+  <arg name="image" default="/odin1/image" />
+  <arg name="detections" default="/person_detection/detections" />
+  <arg name="debug_image" default="/person_detection/debug_image" />
+  <node name="person_detector" pkg="person_detection" exec="person_detector">
+    <param from="$(find-pkg-share person_detection)/config/person_detection.yaml" allow_substs="True" />
+    <remap from="image" to="$(var image)" />
+    <remap from="image/compressed" to="$(var image)/compressed" />
+    <remap from="detections" to="$(var detections)" />
+    <remap from="debug_image" to="$(var debug_image)" />
+  </node>
+</launch>
