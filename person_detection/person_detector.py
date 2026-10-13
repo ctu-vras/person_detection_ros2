@@ -1,14 +1,13 @@
+import cv2
+import numpy as np
 import os
 import time
 
-import cv2
-import numpy as np
-import rclpy
 from ament_index_python.packages import get_package_share_directory
 from cv_bridge import CvBridge
 from image_transport_py import ImageTransport
+import rclpy
 from rclpy.node import Node
-from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import Image
 from vision_msgs.msg import BoundingBox2D, BoundingBox2DArray
 
@@ -48,7 +47,7 @@ class PersonDetector(Node):
         return self.net.forward()
 
     @staticmethod
-    def make_grid(size):
+    def make_grid(size: int):
         grids, strides = [], []
         for s in (8, 16, 32):
             n = size // s
@@ -57,7 +56,7 @@ class PersonDetector(Node):
             strides.append(np.full((n * n, 1), s))
         return np.concatenate(grids), np.concatenate(strides)
 
-    def on_image(self, msg):
+    def on_image(self, msg: Image):
         t0 = time.perf_counter()
         img = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
 
@@ -87,19 +86,21 @@ class PersonDetector(Node):
             det.boxes.append(b)
         self.pub.publish(det)
 
+        t3 = time.perf_counter()
+
         if self.debug_pub.get_num_subscribers() > 0:
             for b in det.boxes:
                 x, y = b.center.position.x - b.size_x / 2, b.center.position.y - b.size_y / 2
-                cv2.rectangle(img, (int(x), int(y)), (int(x + b.size_x), int(y + b.size_y)),
-                              (0, 0, 255), 3)
+                cv2.rectangle(img, (int(x), int(y)), (int(x + b.size_x), int(y + b.size_y)), (0, 0, 255), 3)
             debug = self.bridge.cv2_to_imgmsg(img, 'bgr8')
             debug.header = msg.header
             self.debug_pub.publish(debug)
 
-        t3 = time.perf_counter()
+        t4 = time.perf_counter()
         self.get_logger().info(
             f'{len(det.boxes)} persons | total {(t3 - t0) * 1e3:.1f} ms '
-            f'(pre {(t1 - t0) * 1e3:.1f}, infer {(t2 - t1) * 1e3:.1f}, post {(t3 - t2) * 1e3:.1f})')
+            f'(pre {(t1 - t0) * 1e3:.1f}, infer {(t2 - t1) * 1e3:.1f}, post {(t3 - t2) * 1e3:.1f}, '
+            f'dbg {(t4 - t3) * 1e3:.1f})')
 
 
 def main():
