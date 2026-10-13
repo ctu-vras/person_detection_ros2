@@ -18,15 +18,22 @@ PERSON_CLASS = 0  # COCO
 class PersonDetector(Node):
     def __init__(self):
         super().__init__('person_detector')
-        model_path = self.declare_parameter('model_path', '').value
+        model_path = self.declare_parameter('model_path', 'yolox_tiny.onnx').value
         self.size = self.declare_parameter('input_size', 416).value
         self.score_thr = self.declare_parameter('score_threshold', 0.4).value
         self.nms_thr = self.declare_parameter('nms_threshold', 0.45).value
 
-        if not model_path:
+        if not os.path.isabs(model_path):  # bare file name -> bundled models/ dir
             model_path = os.path.join(
-                get_package_share_directory('person_detection'), 'models', 'yolox_tiny.onnx')
-        self.net = cv2.dnn.readNetFromONNX(model_path)
+                get_package_share_directory('person_detection'), 'models', model_path)
+        if model_path.endswith('.engine'):
+            from person_detection.trt_runner import TrtRunner
+            self.infer = TrtRunner(model_path)
+            backend = 'TensorRT (GPU)'
+        else:
+            self.net = cv2.dnn.readNetFromONNX(model_path)
+            self.infer = self.infer_opencv
+            backend = 'OpenCV DNN (CPU)'
         self.grid, self.strides = self.make_grid(self.size)
         self.bridge = CvBridge()
 
@@ -34,7 +41,11 @@ class PersonDetector(Node):
         self.pub = self.create_publisher(BoundingBox2DArray, 'detections', 10)
         self.debug_pub = self.it.advertise(self.resolve_topic_name('debug_image'), 1)
         self.im_sub = self.it.subscribe(self.resolve_topic_name('image'), 10, self.on_image)
-        self.get_logger().info(f'Loaded {model_path}')
+        self.get_logger().info(f'Loaded {model_path} using {backend}')
+
+    def infer_opencv(self, blob):
+        self.net.setInput(blob)
+        return self.net.forward()
 
     @staticmethod
     def make_grid(size):
@@ -57,8 +68,7 @@ class PersonDetector(Node):
         padded[:int(h * r), :int(w * r)] = cv2.resize(img, (int(w * r), int(h * r)))
 
         t1 = time.perf_counter()
-        self.net.setInput(cv2.dnn.blobFromImage(padded))
-        out = self.net.forward()[0]
+        out = self.infer(cv2.dnn.blobFromImage(padded))[0]
         t2 = time.perf_counter()
 
         # Decode raw grid outputs: [dx, dy, log w, log h, obj, 80 class scores].

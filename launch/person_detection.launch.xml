@@ -2,6 +2,9 @@
   <arg name="image" default="/odin1/image" />
   <arg name="detections" default="/person_detection/detections" />
   <arg name="debug_image" default="/person_detection/debug_image" />
+  <arg name="model_path" default=""
+       description=".onnx -> OpenCV (CPU), .engine -> TensorRT (GPU); bare file names are looked up in the models/ dir"
+  />
   <node name="person_detector" pkg="person_detection" exec="person_detector">
     <param from="$(find-pkg-share person_detection)/config/person_detection.yaml" allow_substs="True" />
     <remap from="image" to="$(var image)" />
