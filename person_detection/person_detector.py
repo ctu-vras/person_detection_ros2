@@ -6,6 +6,7 @@ import numpy as np
 import rclpy
 from ament_index_python.packages import get_package_share_directory
 from cv_bridge import CvBridge
+from image_transport_py import ImageTransport
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import Image
@@ -29,9 +30,10 @@ class PersonDetector(Node):
         self.grid, self.strides = self.make_grid(self.size)
         self.bridge = CvBridge()
 
+        self.it = ImageTransport("person_detector_it", "compressed")
         self.pub = self.create_publisher(BoundingBox2DArray, 'detections', 10)
-        self.debug_pub = self.create_publisher(Image, 'debug_image', 1)
-        self.create_subscription(Image, 'image', self.on_image, qos_profile_sensor_data)
+        self.debug_pub = self.it.advertise(self.resolve_topic_name('debug_image'), 1)
+        self.im_sub = self.it.subscribe(self.resolve_topic_name('image'), 10, self.on_image)
         self.get_logger().info(f'Loaded {model_path}')
 
     @staticmethod
@@ -75,7 +77,7 @@ class PersonDetector(Node):
             det.boxes.append(b)
         self.pub.publish(det)
 
-        if self.debug_pub.get_subscription_count() > 0:
+        if self.debug_pub.get_num_subscribers() > 0:
             for b in det.boxes:
                 x, y = b.center.position.x - b.size_x / 2, b.center.position.y - b.size_y / 2
                 cv2.rectangle(img, (int(x), int(y)), (int(x + b.size_x), int(y + b.size_y)),
