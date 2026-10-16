@@ -17,6 +17,9 @@
     <param from="$(find-pkg-share person_detection)/config/person_detection.yaml" allow_substs="True" />
     <param name="estimate_3d" value="$(var estimate_3d)" />
     <param name="image_transport" value="$(var image_transport)" />
+    
+    <param name="model_path"
+           value="$(eval '&quot;yolox_nano.onnx&quot; if len(&quot;$(var model_path)&quot;) == 0 else &quot;$(var model_path)&quot;')" />
 
     <remap from="image" to="$(var image)" />
     <!-- image_transport_py is dumb on remappings -->
