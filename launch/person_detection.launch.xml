@@ -1,15 +1,31 @@
 <launch>
   <arg name="image" default="/odin1/image" />
-  <arg name="detections" default="/person_detection/detections" />
-  <arg name="debug_image" default="/person_detection/debug_image" />
+
+  <arg name="detections" default="~/detections" />
+  <arg name="detections_3d" default="~/detections_3d" />
+  <arg name="debug_image" default="~/debug_image" />
+  <arg name="debug_point" default="~/debug_point" />
+  <arg name="label_info" default="~/label_info" />
+  <arg name="image_transport" default="compressed" />
+
+  <arg name="estimate_3d" default="True" description="If true, also publish detections_3d topic with pose estimates" />
   <arg name="model_path" default=""
        description=".onnx -> OpenCV (CPU), .engine -> TensorRT (GPU); bare file names are looked up in the models/ dir"
   />
-  <node name="person_detector" pkg="person_detection" exec="person_detector">
+
+  <node name="person_detection" pkg="person_detection" exec="person_detector">
     <param from="$(find-pkg-share person_detection)/config/person_detection.yaml" allow_substs="True" />
+    <param name="estimate_3d" value="$(var estimate_3d)" />
+    <param name="image_transport" value="$(var image_transport)" />
+
     <remap from="image" to="$(var image)" />
-    <remap from="image/compressed" to="$(var image)/compressed" />
-    <remap from="detections" to="$(var detections)" />
-    <remap from="debug_image" to="$(var debug_image)" />
+    <!-- image_transport_py is dumb on remappings -->
+    <remap from="image/$(var image_transport)" to="$(var image)/$(var image_transport)" />
+
+    <remap from="~/detections" to="$(var detections)" />
+    <remap from="~/detections_3d" to="$(var detections_3d)" />
+    <remap from="~/debug_image" to="$(var debug_image)" />
+    <remap from="~/debug_point" to="$(var debug_point)" />
+    <remap from="~/label_info" to="$(var label_info)" />
   </node>
 </launch>

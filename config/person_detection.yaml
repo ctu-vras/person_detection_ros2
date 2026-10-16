@@ -4,3 +4,4 @@ person_detector:
     input_size: 416         # model input is fixed 416x416
     score_threshold: 0.4    # objectness * person class score
     nms_threshold: 0.45
+    person_height: 1.8      # person height in meters used to estimate 3D pose
