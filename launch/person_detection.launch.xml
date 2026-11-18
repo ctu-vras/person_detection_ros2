@@ -1,5 +1,6 @@
 <launch>
   <arg name="image" default="/odin1/image" />
+  <arg name="ns" default="" description="node namespace" />
 
   <arg name="detections" default="~/detections" />
   <arg name="detections_3d" default="~/detections_3d" />
@@ -13,6 +14,8 @@
        description=".onnx -> OpenCV (CPU), .engine -> TensorRT (GPU); bare file names are looked up in the models/ dir"
   />
 
+  <push-ros-namespace namespace="$(var ns)" />
+  
   <node name="person_detection" pkg="person_detection" exec="person_detector">
     <param from="$(find-pkg-share person_detection)/config/person_detection.yaml" allow_substs="True" />
     <param name="estimate_3d" value="$(var estimate_3d)" />
