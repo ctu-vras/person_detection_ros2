@@ -17,8 +17,8 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='herolada',
-    maintainer_email='herold.adam7@gmail.com',
+    maintainer='Adam Herold',
+    maintainer_email='herolada@fel.cvut.cz',
     description='YOLOX-tiny person detection node.',
     license='MIT',
     entry_points={
