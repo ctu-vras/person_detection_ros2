@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import os
+import threading
 import time
 from typing import List, Tuple
 
@@ -12,7 +13,7 @@ from image_transport_py import ImageTransport
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile
-from sensor_msgs.msg import CameraInfo, Image
+from sensor_msgs.msg import CameraInfo, CompressedImage, Image
 from vision_msgs.msg import BoundingBox2D, BoundingBox2DArray, ObjectHypothesisWithPose, Detection2D, Detection2DArray
 from vision_msgs.msg import LabelInfo, VisionClass
 
@@ -48,7 +49,14 @@ class PersonDetector(Node):
 
         self.it = ImageTransport("person_detection_it", sub_image_transport)
         self.pub = self.create_publisher(BoundingBox2DArray, '~/detections', 10)
-        self.debug_img_pub = self.it.advertise(self.resolve_topic_name('~/debug_image'), 1)
+        self.debug_jpeg_quality = self.declare_parameter('debug_jpeg_quality', 70).value
+        self.debug_img_pub = self.create_publisher(CompressedImage, '~/debug_image/compressed', 1)
+        self.debug_raw_pub = self.create_publisher(Image, '~/debug_image', 1)
+        # Debug drawing + JPEG encoding run in a worker so they never block inference; only the latest frame is kept.
+        self._debug_cv = threading.Condition()
+        self._debug_job = None
+        self._debug_thread = threading.Thread(target=self._debug_loop, daemon=True)
+        self._debug_thread.start()
         if self.estimate_3d:
             self.pub_3d = self.create_publisher(Detection2DArray, '~/detections_3d', 10)
             self.debug_pt_pub = self.create_publisher(PointStamped, '~/debug_point', 10)
@@ -130,6 +138,28 @@ class PersonDetector(Node):
         pos_3d = np.array(pos_ray) * scale
         return Point(x=pos_3d[0], y=pos_3d[1], z=pos_3d[2])
 
+    def _debug_loop(self) -> None:
+        while rclpy.ok():
+            with self._debug_cv:
+                while self._debug_job is None:
+                    self._debug_cv.wait(timeout=0.5)
+                    if not rclpy.ok():
+                        return
+                img, boxes, header = self._debug_job
+                self._debug_job = None
+
+            for cx, cy, w, h in boxes:
+                x, y = cx - w / 2, cy - h / 2
+                cv2.rectangle(img, (int(x), int(y)), (int(x + w), int(y + h)), (0, 0, 255), 3)
+            if self.debug_raw_pub.get_subscription_count() > 0:
+                debug = self.bridge.cv2_to_imgmsg(img, 'bgr8')
+                debug.header = header
+                self.debug_raw_pub.publish(debug)
+            if self.debug_img_pub.get_subscription_count() > 0:
+                ok, buf = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, int(self.debug_jpeg_quality)])
+                if ok:
+                    self.debug_img_pub.publish(CompressedImage(header=header, format='jpeg', data=buf.tobytes()))
+
     def on_image(self, msg: Image) -> Tuple[BoundingBox2DArray, List[float]]:
         t0 = time.perf_counter()
         img = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
@@ -162,13 +192,11 @@ class PersonDetector(Node):
 
         t3 = time.perf_counter()
 
-        if self.debug_img_pub.get_num_subscribers() > 0:
-            for b in det.boxes:
-                x, y = b.center.position.x - b.size_x / 2, b.center.position.y - b.size_y / 2
-                cv2.rectangle(img, (int(x), int(y)), (int(x + b.size_x), int(y + b.size_y)), (0, 0, 255), 3)
-            debug = self.bridge.cv2_to_imgmsg(img, 'bgr8')
-            debug.header = msg.header
-            self.debug_img_pub.publish(debug)
+        if self.debug_img_pub.get_subscription_count() + self.debug_raw_pub.get_subscription_count() > 0:
+            boxes = [(b.center.position.x, b.center.position.y, b.size_x, b.size_y) for b in det.boxes]
+            with self._debug_cv:
+                self._debug_job = (img, boxes, msg.header)
+                self._debug_cv.notify()
 
         t4 = time.perf_counter()
         self.get_logger().info(
