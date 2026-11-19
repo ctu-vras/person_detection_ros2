@@ -195,14 +195,6 @@ TEST_P(PersonDetection, RandomImage) {
 }
 
 INSTANTIATE_TEST_SUITE_P(BundledModels, PersonDetection, ::testing::ValuesIn(availableModels()));
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(PersonDetection);
-
-// Without any of the yolox_*.* models, there is no backend to test.
-TEST(PersonDetectionModels, Available) {
-  if (modelsDir().empty() || availableModels().empty()) {
-    GTEST_SKIP() << "No yolox_*.onnx or yolox_*.engine model is available";
-  }
-}
 
 }  // namespace
 

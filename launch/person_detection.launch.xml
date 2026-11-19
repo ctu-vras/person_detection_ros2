@@ -15,7 +15,7 @@ SPDX-FileCopyrightText: Czech Technical University in Prague
   <arg name="image_transport" default="compressed" />
 
   <arg name="estimate_3d" default="True" description="If true, also publish detections_3d topic with pose estimates" />
-  <arg name="model_path" default=""
+  <arg name="model_path" default="yolox_nano.onnx"
        description=".onnx -> OpenCV (CPU), .engine -> TensorRT (GPU); bare file names are looked up in the models/ dir"
   />
 
