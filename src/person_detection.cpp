@@ -283,11 +283,20 @@ std::pair<BoundingBox2DArray, std::vector<float>> PersonDetection::processImage(
   }
 
   const auto t4 = std::chrono::steady_clock::now();
-  RCLCPP_INFO(
-    get_logger(),
-    "%zu persons | total  %.1f ms (pre %.1f, infer %.1f, post %.1f, dbg %.1f)",
-    detections.boxes.size(),
-    milliseconds(t4 - t0), milliseconds(t1 - t0), milliseconds(t2 - t1), milliseconds(t3 - t2), milliseconds(t4 - t3));
+  if (detections.boxes.size() > 0) {
+    RCLCPP_INFO(
+      get_logger(),
+      "%zu persons | total  %.1f ms (pre %.1f, infer %.1f, post %.1f, dbg %.1f)",
+      detections.boxes.size(),
+      milliseconds(t4 - t0), milliseconds(t1 - t0), milliseconds(t2 - t1),
+      milliseconds(t3 - t2), milliseconds(t4 - t3));
+  } else {
+    RCLCPP_INFO_THROTTLE(
+      get_logger(), *get_clock(), 10000,
+      "0 persons | total  %.1f ms (pre %.1f, infer %.1f, post %.1f, dbg %.1f)",
+      milliseconds(t4 - t0), milliseconds(t1 - t0), milliseconds(t2 - t1),
+      milliseconds(t3 - t2), milliseconds(t4 - t3));
+  }
 
   return detectionsAndScores;
 }
