@@ -18,7 +18,7 @@
 #include <gtest/gtest.h>
 #include <opencv2/core.hpp>
 
-#include <ament_index_cpp/get_package_share_directory.hpp>
+#include <ament_index_cpp/get_package_share_path.hpp>
 #include <cras_cpp_common/image_transport.hpp>
 #include <cv_bridge/cv_bridge.hpp>
 #include <person_detection/person_detection.hpp>
@@ -46,7 +46,7 @@ std::string modelsDir() {
   candidates.push_back(PERSON_DETECTION_SOURCE_MODELS_DIR);
 #endif
   try {
-    candidates.push_back(ament_index_cpp::get_package_share_directory("person_detection") + "/models");
+    candidates.push_back(ament_index_cpp::get_package_share_path("person_detection") / "models");
   } catch (const std::exception&) {
     // the package is not installed, only the models in its sources can be tested
   }
@@ -195,6 +195,7 @@ TEST_P(PersonDetection, RandomImage) {
 }
 
 INSTANTIATE_TEST_SUITE_P(BundledModels, PersonDetection, ::testing::ValuesIn(availableModels()));
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(PersonDetection);
 
 // Without any of the yolox_*.* models, there is no backend to test.
 TEST(PersonDetectionModels, Available) {
