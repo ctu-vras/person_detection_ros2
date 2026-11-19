@@ -1,4 +1,6 @@
-person_detector:
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: Czech Technical University in Prague
+/**:
   ros__parameters:
     input_size: 416         # model input is fixed 416x416
     score_threshold: 0.4    # objectness * person class score

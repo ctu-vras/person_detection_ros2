@@ -1,5 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<!--
+SPDX-License-Identifier: MIT
+SPDX-FileCopyrightText: Czech Technical University in Prague
+-->
 <package format="3">
   <name>person_detection</name>
   <version>0.0.1</version>
@@ -15,17 +19,38 @@
   <author>Adam Herold</author>
   <author>Martin Pecka</author>
 
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <build_depend>ament_index_cpp</build_depend>
+  <build_depend>cras_cpp_common</build_depend>
+  <build_depend>cv_bridge</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>image_geometry</build_depend>
+  <build_depend>image_transport</build_depend>
+  <build_depend>rclcpp</build_depend>
+  <build_depend>rclcpp_components</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>vision_msgs</build_depend>
+
+  <exec_depend>ament_index_cpp</exec_depend>
+  <exec_depend>compressed_image_transport</exec_depend>
+  <exec_depend>cras_cpp_common</exec_depend>
   <exec_depend>cv_bridge</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>image_geometry</exec_depend>
-  <exec_depend>image_transport_py</exec_depend>
-  <exec_depend>python3-numpy</exec_depend>
-  <exec_depend>python3-opencv</exec_depend>
-  <exec_depend>rclpy</exec_depend>
+  <exec_depend>image_transport</exec_depend>
+  <exec_depend>rclcpp</exec_depend>
+  <exec_depend>rclcpp_components</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
   <exec_depend>vision_msgs</exec_depend>
 
+  <test_depend>ament_cmake_gtest</test_depend>
+  <test_depend>ament_cmake_lint_cmake</test_depend>
+  <test_depend>cras_lint</test_depend>
+
   <export>
-    <build_type>ament_python</build_type>
+    <build_type>ament_cmake</build_type>
   </export>
 </package>

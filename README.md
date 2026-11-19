@@ -1,5 +1,7 @@
-<!-- SPDX-License-Identifier: MIT -->
-<!-- SPDX-FileCopyrightText: Czech Technical University in Prague -->
+<!--
+SPDX-License-Identifier: MIT
+SPDX-FileCopyrightText: Czech Technical University in Prague
+-->
 
 # person_detection
 
@@ -16,7 +18,7 @@ The network is executed either by OpenCV DNN on an ONNX model (CPU) or by Tensor
 The raw YOLOX output (`[dx, dy, log w, log h, objectness, 80 class scores]` on strides 8, 16 and 32) is decoded by
 the node itself, so no external post-processing library is needed. Incoming images are rescaled and pasted to the
 top-left corner of a gray square (the YOLOX letterboxing) and the decoded boxes are filtered by
-`score_threshold` and by `cv2.dnn.NMSBoxes`.
+`score_threshold` and by `cv::dnn::NMSBoxes`.
 
 Detection runs on every received image and the node logs the number of found persons together with a per-stage
 timing breakdown (`pre`, `infer`, `post`, `dbg`) so that it is easy to see where the processing time goes.
@@ -24,10 +26,20 @@ timing breakdown (`pre`, `infer`, `post`, `dbg`) so that it is easy to see where
 ## Models
 
 The weights are not stored in the repository (ONNX files are git-ignored), so drop the exported models into
-`models/` before building - `setup.py` installs everything from that directory into
+`models/` before building - CMake installs everything from that directory into
 `share/person_detection/models`. A bare file name passed in `model_path` is looked up in that directory, an
 absolute path is used as given. The bundled configuration expects a 416x416 YOLOX-tiny or YOLOX-nano export
 (`input_size` has to match the exported input size).
+
+## Building
+
+```
+rosdep install -ri --from-paths src
+colcon build --packages-select person_detection
+```
+
+The package is a plain `ament_cmake` package with a composable node (`rclcpp_components`) and it can be built
+without TensorRT - in that case only the ONNX models can be run.
 
 ## Running
 
@@ -39,7 +51,8 @@ The image topic is passed by the `image` argument (`/odin1/image` by default) an
 `image_transport` (`compressed` by default). The launch file also exposes `estimate_3d` and `model_path`, and
 arguments for remapping the individual outputs (`detections`, `detections_3d`, `debug_image`, `debug_point`,
 `label_info`). The node can also be started directly with `ros2 run person_detection person_detector`, which
-leaves all the names private to the node.
+leaves all the names private to the node, or loaded into a component container as
+`person_detection::PersonDetection`.
 
 ## Interface
 
@@ -79,13 +92,25 @@ transform it by TF. The estimates are computed only when something subscribes to
 
 ## Running on a GPU
 
-`person_detection/trt_runner.py` is a minimal TensorRT runner that talks to CUDA through `ctypes`, so no
-`pycuda`/`cuda-python` is needed - only the `tensorrt` Python bindings and a loadable `libcudart`. Engines are not
-portable between GPUs and TensorRT versions, so build the engine on the target machine and put it next to the ONNX
-models:
+`src/trt_runner.cpp` is a minimal TensorRT runner. It does not link the CUDA runtime - `libcudart` is opened by
+`dlopen()` at runtime and only the few functions it needs (`cudaMalloc`, `cudaFree`, `cudaMemcpyAsync` and the
+stream functions) are resolved. The package therefore needs no CUDA toolkit at build or run time, only TensorRT itself
+(`cmake/FindTENSORRT.cmake` looks for `NvInfer.h` and `libnvinfer`, pass `-DTENSORRT_DIR=/path/to/TensorRT` when it is
+not in the system paths). Engines are not portable between GPUs and TensorRT versions, so build the engine on the
+target machine and put it next to the ONNX models:
 
 ```
 trtexec --onnx=models/yolox_nano.onnx --saveEngine=models/yolox_nano.engine --fp16
 colcon build --packages-select person_detection
 ros2 launch person_detection person_detection.launch.xml model_path:=yolox_nano.engine
 ```
+
+## Tests
+
+```
+colcon test --packages-select person_detection && colcon test-result --verbose
+```
+
+The test sends a random image to the detector and checks it publishes something back. It runs once for every
+`yolox_*.onnx`/`yolox_*.engine` model found in `models/` (the TensorRT ones only when the package was built with
+TensorRT support) and is skipped when no model is installed.
